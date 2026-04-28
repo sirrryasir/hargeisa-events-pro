@@ -2,20 +2,23 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
+import { Suspense } from "react";
 
-export default function LoginPage() {
-  const router = useRouter();
+function LoginContent() {
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -31,12 +34,13 @@ export default function LoginPage() {
 
       if (res?.error) {
         setError("Invalid credentials. Please try again.");
+        setIsLoading(false);
       } else {
-        router.push("/dashboard");
+        // Use window.location.href for a hard redirect to ensure session synchronization
+        window.location.href = callbackUrl;
       }
     } catch {
       setError("An unexpected error occurred.");
-    } finally {
       setIsLoading(false);
     }
   }
@@ -121,5 +125,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
