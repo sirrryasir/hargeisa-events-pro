@@ -126,22 +126,22 @@ const importData = async () => {
 
     // 2. Import Users
     console.log("Seeding users...");
-    const createdUsers = await User.create(users);
+    const createdUsers = await User.insertMany(users);
 
     // 3. Import Venues
     console.log("Seeding venues...");
-    const createdVenues = await Venue.create(venues);
+    const createdVenues = await Venue.insertMany(venues);
 
     // 4. Import Vendors
     console.log("Seeding vendors...");
-    await Vendor.create(vendors);
+    await Vendor.insertMany(vendors);
 
     // 5. Import Sample Bookings & Payments
     console.log("Seeding sample bookings & payments...");
     if (createdVenues.length >= 2) {
       const v1 = createdVenues[0]!;
       const v2 = createdVenues[1]!;
-      const createdBookings = await Booking.create([
+      const createdBookings = await Booking.insertMany([
         {
           venue: v1._id,
           clientName: "Amina Abdi",
@@ -165,7 +165,7 @@ const importData = async () => {
       ]);
 
       console.log("Seeding payments...");
-      await Payment.create([
+      await Payment.insertMany([
         {
           transactionId: "TRX-4592",
           bookingId: createdBookings[0]!._id,
