@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-outfit);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Monochrome Design System */
+  --color-background: white;
+  --color-foreground: black;
+
+  --color-card: white;
+  --color-card-foreground: black;
+
+  --color-popover: white;
+  --color-popover-foreground: black;
+
+  --color-primary: black;
+  --color-primary-foreground: white;
+
+  --color-secondary: #f1f5f9; /* Slate 100 */
+  --color-secondary-foreground: black;
+
+  --color-muted: #f8fafc; /* Slate 50 */
+  --color-muted-foreground: #64748b; /* Slate 500 */
+
+  --color-accent: #f1f5f9;
+  --color-accent-foreground: black;
+
+  --color-destructive: black;
+  --color-destructive-foreground: white;
+
+  --color-border: #e2e8f0; /* Slate 200 */
+  --color-input: #e2e8f0;
+  --color-ring: black;
+
+  --color-chart-1: black;
+  --color-chart-2: #334155;
+  --color-chart-3: #475569;
+  --color-chart-4: #64748b;
+  --color-chart-5: #94a3b8;
+}
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+  }
+}
+
+@utility border-border {
+  border-color: var(--color-border);
+}
+
+@utility bg-background {
+  background-color: var(--color-background);
+}
+
+@utility text-foreground {
+  color: var(--color-foreground);
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
