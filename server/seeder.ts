@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
 import { User } from "./src/models/user.model.js";
 import { Venue } from "./src/models/venue.model.js";
 import { Booking } from "./src/models/booking.model.js";
@@ -126,7 +127,13 @@ const importData = async () => {
 
     // 2. Import Users
     console.log("Seeding users...");
-    const createdUsers = await User.insertMany(users);
+    const hashedUsers = await Promise.all(
+      users.map(async (user) => ({
+        ...user,
+        password: await bcrypt.hash(user.password, 10),
+      }))
+    );
+    const createdUsers = await User.insertMany(hashedUsers);
 
     // 3. Import Venues
     console.log("Seeding venues...");
