@@ -1,15 +1,25 @@
-# server
+# Server
 
-To install dependencies:
+Backend API for Hargeisa Events Pro.
+
+Canonical project documentation lives in the repository root:
+
+- [`../README.md`](../README.md)
+
+## Local Commands
 
 ```bash
-bun install
+npm install
+npm run dev
+npm run build
+npm run test
+npm run data:import
+npm run data:destroy
 ```
 
-To run:
+## Notes
 
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.3.11. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+- Framework: Express + TypeScript
+- Database: MongoDB via Mongoose
+- Auth: JWT Bearer tokens
+- API prefix: `/api`
