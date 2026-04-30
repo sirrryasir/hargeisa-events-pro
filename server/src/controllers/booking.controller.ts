@@ -1,5 +1,6 @@
 import { type Request, type Response } from "express";
 import { Booking } from "../models/booking.model.js";
+import Payment from "../models/payment.model.js";
 import { asyncHandler, ApiResponse, ApiError } from "../lib/apiUtils.js";
 
 /**
@@ -50,7 +51,7 @@ export const updateBookingStatus = asyncHandler(async (req: any, res: Response) 
   const { status, rating, feedback } = req.body;
   const updateData: { status?: string; rating?: number; feedback?: string } = {};
 
-  const existingBooking = await Booking.findById(req.params.id);
+  const existingBooking = await Booking.findById(req.params.id).populate("venue");
   if (!existingBooking) {
     throw new ApiError(404, "Booking not found");
   }
@@ -68,7 +69,22 @@ export const updateBookingStatus = asyncHandler(async (req: any, res: Response) 
     if (typeof rating !== "undefined") updateData.rating = rating;
     if (typeof feedback !== "undefined") updateData.feedback = feedback;
   } else if (isManagerOrAdmin) {
-    if (typeof status !== "undefined") updateData.status = status;
+    if (typeof status !== "undefined") {
+      // TASK 3: Automate Payment Ledger Generation
+      // Check if status is being changed from pending to confirmed
+      if (status === "confirmed" && existingBooking.status === "pending") {
+        await Payment.create({
+          transactionId: `TXN-${Date.now()}`,
+          bookingId: existingBooking._id,
+          clientName: existingBooking.clientName,
+          venueName: (existingBooking.venue as any)?.name || "Premium Venue",
+          amount: 500, // Mocked deposit amount
+          type: "Deposit (50%)",
+          status: "paid",
+        });
+      }
+      updateData.status = status;
+    }
     if (typeof rating !== "undefined") updateData.rating = rating;
     if (typeof feedback !== "undefined") updateData.feedback = feedback;
   } else {

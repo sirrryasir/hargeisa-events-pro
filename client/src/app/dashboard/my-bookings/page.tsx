@@ -57,6 +57,17 @@ export default function MyBookingsPage() {
     }
   };
 
+  const handleCancelBooking = async (id: string) => {
+    if (!confirm("Are you sure you want to cancel this reservation?")) return;
+    try {
+      await api.patch(`/bookings/${id}`, { status: "cancelled" });
+      const res = await api.get("/bookings");
+      setBookings(res.data.data);
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="border-b border-black pb-8">
@@ -140,6 +151,15 @@ export default function MyBookingsPage() {
                             </div>
                           </DialogContent>
                         </Dialog>
+                      )}
+                      {booking.status === 'pending' && (
+                        <Button 
+                          variant="outline" 
+                          onClick={() => handleCancelBooking(booking._id)}
+                          className="rounded-none border-red-200 text-red-500 text-[10px] font-bold uppercase tracking-widest h-10 px-6 hover:bg-red-50 hover:border-red-500 transition-all"
+                        >
+                          Cancel
+                        </Button>
                       )}
                       <Button 
                         variant="outline" 

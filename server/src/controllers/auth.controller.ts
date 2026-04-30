@@ -23,9 +23,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
     throw new ApiError(400, "User already exists");
   }
 
-  const allowedRoles = ["admin", "manager", "customer"];
-  const normalizedRole = allowedRoles.includes(role) ? role : "customer";
-  const user = await User.create({ name, email: normalizedEmail, password, role: normalizedRole });
+  const user = await User.create({ name, email: normalizedEmail, password, role: "customer" });
 
   res.status(201).json(
     new ApiResponse(

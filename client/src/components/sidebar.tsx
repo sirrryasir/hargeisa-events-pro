@@ -34,6 +34,8 @@ export function Sidebar() {
   const customerNav = [
     { name: "My Bookings", href: "/dashboard/my-bookings", icon: CalendarDays },
     { name: "Browse Venues", href: "/dashboard/venues", icon: Building2 },
+    { name: "Availability", href: "/dashboard/calendar", icon: CalendarDays },
+    { name: "Vendor Directory", href: "/dashboard/vendors", icon: Store },
     { name: "My Invoices", href: "/dashboard/payments", icon: CreditCard },
     { name: "Support", href: "/dashboard/support", icon: Users },
   ];

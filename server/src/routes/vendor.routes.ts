@@ -4,7 +4,9 @@ import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.get("/", getVendors);
-router.post("/", protect, authorizeRoles("admin", "manager"), createVendor);
+router
+  .route("/")
+  .get(getVendors)
+  .post(protect, authorizeRoles("admin"), createVendor);
 
 export default router;

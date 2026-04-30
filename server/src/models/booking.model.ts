@@ -6,7 +6,7 @@ export interface IBooking extends Document {
   clientName: string;
   clientPhone: string;
   eventType: string;
-  eventDate: string;
+  eventDate: Date;
   guestCount: number;
   status: "confirmed" | "pending" | "cancelled" | "rejected";
   notes: string;
@@ -21,7 +21,7 @@ const bookingSchema: Schema = new Schema(
     clientName: { type: String, required: true },
     clientPhone: { type: String, required: true },
     eventType: { type: String, required: true },
-    eventDate: { type: String, required: true },
+    eventDate: { type: Date, required: true },
     guestCount: { type: Number, required: true },
     status: {
       type: String,

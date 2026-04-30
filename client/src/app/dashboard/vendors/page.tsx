@@ -57,13 +57,9 @@ export default function VendorsPage() {
 
   useEffect(() => {
     if (session) {
-      if (session.user?.role === "customer") {
-        router.replace("/dashboard");
-        return;
-      }
       fetchVendors();
     }
-  }, [session, router]);
+  }, [session]);
 
   if (isLoading) return <div className="p-12 text-center font-bold text-black uppercase tracking-widest">Scanning Directory...</div>;
 
@@ -76,26 +72,28 @@ export default function VendorsPage() {
             Professional service providers for Hargeisa events.
           </p>
         </div>
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogTrigger render={
-            <Button className="bg-black text-white rounded-none hover:bg-slate-800 uppercase text-xs font-bold tracking-widest gap-2 h-12 px-6">
-              <Plus className="h-4 w-4" />
-              Apply to Directory
-            </Button>
-          } />
-          <DialogContent className="rounded-none border-2 border-black max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold text-black uppercase tracking-tight">Onboard Vendor</DialogTitle>
-              <DialogDescription className="text-xs font-bold uppercase text-slate-400">
-                Register a new professional service provider.
-              </DialogDescription>
-            </DialogHeader>
-            <VendorForm onSuccess={() => {
-              setIsFormOpen(false);
-              fetchVendors();
-            }} />
-          </DialogContent>
-        </Dialog>
+        {session?.user?.role !== "customer" && (
+          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogTrigger render={
+              <Button className="bg-black text-white rounded-none hover:bg-slate-800 uppercase text-xs font-bold tracking-widest gap-2 h-12 px-6">
+                <Plus className="h-4 w-4" />
+                Apply to Directory
+              </Button>
+            } />
+            <DialogContent className="rounded-none border-2 border-black max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-black uppercase tracking-tight">Onboard Vendor</DialogTitle>
+                <DialogDescription className="text-xs font-bold uppercase text-slate-400">
+                  Register a new professional service provider.
+                </DialogDescription>
+              </DialogHeader>
+              <VendorForm onSuccess={() => {
+                setIsFormOpen(false);
+                fetchVendors();
+              }} />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -163,21 +161,23 @@ export default function VendorsPage() {
         })}
       </div>
 
-      <div className="mt-12 p-12 border-2 border-dashed border-slate-200 flex flex-col items-center text-center">
-        <div className="w-16 h-16 bg-slate-50 flex items-center justify-center text-slate-200 mb-4">
-          <Building2 size={32} />
+      {session?.user?.role !== "customer" && (
+        <div className="mt-12 p-12 border-2 border-dashed border-slate-200 flex flex-col items-center text-center">
+          <div className="w-16 h-16 bg-slate-50 flex items-center justify-center text-slate-200 mb-4">
+            <Building2 size={32} />
+          </div>
+          <h3 className="text-lg font-bold text-black uppercase tracking-tight">Vendor Onboarding</h3>
+          <p className="text-slate-500 max-w-sm mt-2 mb-8 text-sm font-medium">
+            Expand your business reach within the Hargeisa Pro professional event ecosystem.
+          </p>
+          <Button 
+            onClick={() => setIsFormOpen(true)}
+            className="bg-black text-white rounded-none hover:bg-slate-800 uppercase text-xs font-bold tracking-widest"
+          >
+            Apply to Directory
+          </Button>
         </div>
-        <h3 className="text-lg font-bold text-black uppercase tracking-tight">Vendor Onboarding</h3>
-        <p className="text-slate-500 max-w-sm mt-2 mb-8 text-sm font-medium">
-          Expand your business reach within the Hargeisa Pro professional event ecosystem.
-        </p>
-        <Button 
-          onClick={() => setIsFormOpen(true)}
-          className="bg-black text-white rounded-none hover:bg-slate-800 uppercase text-xs font-bold tracking-widest"
-        >
-          Apply to Directory
-        </Button>
-      </div>
+      )}
     </div>
   );
 }

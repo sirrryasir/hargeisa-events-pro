@@ -2,12 +2,14 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IVendor extends Document {
   name: string;
-  type: string; // e.g., "Decoration", "Catering", "Sound System", "Photography"
+  type: string;
   rating: number;
   projects: number;
   status: "available" | "busy";
   contactEmail: string;
   contactPhone: string;
+  contactPerson: string;
+  description: string;
 }
 
 const vendorSchema = new Schema(
@@ -23,6 +25,8 @@ const vendorSchema = new Schema(
     },
     contactEmail: { type: String, required: true },
     contactPhone: { type: String, required: true },
+    contactPerson: { type: String },
+    description: { type: String },
   },
   { timestamps: true }
 );

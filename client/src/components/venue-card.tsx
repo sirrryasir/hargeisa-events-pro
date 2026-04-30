@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { BookingForm } from "@/components/booking-form";
+import { useState } from "react";
 
 interface Venue {
   _id: string;
@@ -25,6 +26,8 @@ interface Venue {
 }
 
 export function VenueCard({ venue }: { venue: Venue }) {
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+
   return (
     <div className="bg-white border border-slate-200 rounded-none transition-all duration-200 hover:border-black group">
       <div className="aspect-[16/9] w-full bg-slate-50 relative overflow-hidden border-b border-slate-100">
@@ -87,7 +90,7 @@ export function VenueCard({ venue }: { venue: Venue }) {
         )}
 
         <div className="flex gap-2 mt-8 pt-6 border-t border-slate-100">
-          <Dialog>
+          <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
             <DialogTrigger render={
               <button className="flex-1 bg-black text-white py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors">
                 Book Now
@@ -98,7 +101,11 @@ export function VenueCard({ venue }: { venue: Venue }) {
                 <DialogTitle className="text-2xl font-black text-black uppercase tracking-tight">Direct Reservation</DialogTitle>
                 <DialogDescription className="text-[10px] font-bold uppercase text-slate-400">Secure your date for {venue.name} immediately.</DialogDescription>
               </DialogHeader>
-              <BookingForm initialVenueId={venue._id} />
+              <BookingForm 
+                initialVenueId={venue._id} 
+                initialVenueName={venue.name}
+                onSuccess={() => setIsBookingOpen(false)} 
+              />
             </DialogContent>
           </Dialog>
           

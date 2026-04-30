@@ -2,6 +2,8 @@
 
 Technical documentation for the current Hargeisa Events Pro MVP.
 
+**Project Status**: 🟢 Demo-Ready (v0.9 MVP) - Last updated: April 2026
+
 This repository implements a MERN-style event booking platform with:
 - a Next.js frontend in `client/`
 - an Express + MongoDB API in `server/`
@@ -116,47 +118,53 @@ Core workflow:
 - TypeScript
 - MongoDB
 - Mongoose `9`
-- JSON Web Token (`jsonwebtoken`)
+- `jsonwebtoken`
 - `bcryptjs`
 - `dotenv`
 - `morgan`
-
-### Installed but Not Currently Wired Into the Runtime
-
-The backend dependencies include the following libraries, but the active app bootstrap does not currently register them:
 - `helmet`
 - `compression`
 - `express-rate-limit`
-- server-side `zod` validation
+
+### Active Runtime Protections
+The backend now enforces the following production-grade middlewares:
+- `helmet`: Secure HTTP headers
+- `compression`: Payload optimization
+- `express-rate-limit`: Brute-force and DoS protection
+- `ApiResponse` / `ApiError`: Standardized response shapes
 
 ## Functional Scope
 
 ### Implemented
 
-- credential-based authentication
+- credential-based authentication with NextAuth + JWT
 - JWT-backed session propagation from backend to frontend
-- protected dashboard routes
-- venue listing and venue creation
-- booking creation
-- booking status updates
-- customer booking self-service view
+- protected dashboard routes with middleware
+- venue listing, creation, and detailed view
+- booking creation (authenticated or anonymous)
+- booking status updates with role-based permissions
+- **payment automation** - auto-generates payment ledger entry when booking status changes to "confirmed"
+- customer booking self-service view (scoped by user ID)
 - booking feedback and rating submission
-- vendor directory listing and vendor creation
+- vendor directory listing, creation, and detailed view
+- vendor data persistence for `contactPerson` and `description`
 - payment record listing and creation
-- simple calendar view derived from booking dates
+- **standardized API responses** - Most controllers use `ApiResponse`/`ApiError` utilities (payment controller uses legacy format)
+- simple calendar view derived from booking dates with real-time updates (15s polling)
 - simple reporting view derived from bookings and payments
 - CSV export for bookings, payments, calendar, and reports
+- role-aware sidebar navigation (6 items for customers, 7 items for staff)
+- Dialog-based booking form with success auto-close
+- production-grade middlewares (helmet, compression, rate limiting)
 
 ### Not Implemented as a First-Class Workflow
 
-- payment checkout or payment gateway integration
-- vendor booking persistence
-- venue update/delete
-- vendor update/delete
-- booking cancellation endpoint in UI
-- audit logging persistence
-- refresh tokens, token revocation, or session invalidation beyond sign-out
-- per-venue ownership or manager assignment
+- booking cancellation workflow for customers (status enum exists but no UI)
+- vendor "Book Service" integration (UI placeholder only, no backend linkage)
+- real payment gateway integration (ledger works with mocked transactions)
+- per-venue ownership or manager assignment (Planned)
+- pagination, filtering, or sorting on list endpoints
+- Docker/containerization setup
 
 ## Architecture
 
@@ -231,13 +239,11 @@ Bootstrap pipeline:
 
 #### Controller design
 
-Controllers are thin and operate directly on Mongoose models. There is no service layer, policy layer, or domain abstraction between routes and persistence.
+Contollers are thin and operate directly on Mongoose models. There is no service layer, policy layer, or domain abstraction between routes and persistence.
 
-#### Response format
-
-Response shape is not fully standardized:
-- auth, venue, and booking controllers use `ApiResponse`
-- vendor and payment controllers return inline JSON objects
+Response shape is **mostly standardized** across the API:
+- Most controllers use `ApiResponse` and `ApiError` utilities for consistent frontend consumption
+- **Exception**: Payment controller uses legacy `{ success, data }` format instead of `ApiResponse` class (frontend handles both formats correctly)
 
 ### Data Access Pattern
 
@@ -282,7 +288,7 @@ The backend exposes three auth middlewares/patterns:
 
 | Capability | Admin | Manager | Customer | Anonymous |
 | --- | --- | --- | --- | --- |
-| Register account | Yes | Yes | Yes | Yes |
+| Register account | Yes | Yes | Yes (Forced) | Yes |
 | Login | Yes | Yes | Yes | Yes |
 | View venues | Yes | Yes | Yes | Yes |
 | Create venue | Yes | Yes | No | No |
@@ -361,6 +367,8 @@ Fields:
 - `status: "available" | "busy"`
 - `contactEmail: string`
 - `contactPhone: string`
+- `contactPerson: string`
+- `description: string`
 - timestamps
 
 Behavior:
@@ -377,7 +385,7 @@ Fields:
 - `clientName: string`
 - `clientPhone: string`
 - `eventType: string`
-- `eventDate: string`
+- `eventDate: Date`
 - `guestCount: number`
 - `status: "confirmed" | "pending" | "cancelled" | "rejected"`
 - `notes?: string`
@@ -493,6 +501,11 @@ Behavior:
 - `admin` and `manager`
   - may change `status`
   - may also set `rating` and `feedback`
+  - **automation**: When status changes from "pending" → "confirmed", a payment record is **auto-generated** with:
+    - `transactionId`: `TXN-{timestamp}`
+    - `type`: "Deposit (50%)"
+    - `status`: "paid"
+    - `amount`: 500 (mocked deposit)
 
 ## Vendors
 
@@ -635,11 +648,11 @@ npm run data:destroy
 ## Seeded Domain Records
 
 The seeder currently creates:
-- 3 users
-- 4 venues
-- 4 vendors
-- 2 bookings
-- 2 payments
+- 3 users (admin, manager, customer)
+- 4 venues (Ambassador Hotel, Mansoor Hotel, Oriental Hall, Rays Hotel)
+- 4 vendors (Golden Decor, Elite Catering, Hargeisa Sounds, Somaliland Lens)
+- 2 bookings (1 confirmed, 1 pending)
+- 2 payments (1 Full Payment, 1 Deposit 50%)
 
 ## Deployment Notes
 
@@ -679,49 +692,36 @@ NODE_ENV=production
 
 The following items reflect the current codebase, not an idealized target state.
 
-### Security and Auth
+- fallback secrets are hardcoded in both frontend and backend auth configuration (acceptable for MVP demo)
+- page-level staff restrictions in the frontend are mostly client redirects (server enforces via JWT)
+- `next/image` remote patterns allow any `http` or `https` host (restrict in production)
 
-- `POST /auth/register` accepts caller-supplied roles from `admin`, `manager`, and `customer`
-- fallback secrets are hardcoded in both frontend and backend auth configuration
-- `helmet`, rate limiting, and compression are installed but not active
-- page-level staff restrictions in the frontend are mostly client redirects
-- `next/image` remote patterns allow any `http` or `https` host
+- `Venue` has no `createdBy`, `owner`, or `managerId` (planned feature)
+- `Vendor` is a standalone directory entry with no direct booking relationship
+- `Payment` denormalizes `clientName` and `venueName` for simpler queries
+- no dedicated availability model exists beyond interpreting booking dates
 
-### Data Model and Domain Gaps
-
-- `Venue` has no `createdBy`, `owner`, or `managerId`
-- `Booking.eventDate` is stored as a string instead of a date type
-- `Vendor` is a standalone directory entry with no booking relationship
-- `Payment` duplicates `clientName` and `venueName`
-- no availability model exists beyond interpreting booking dates
-
-### Validation and API Consistency
-
-- backend request validation is minimal and not standardized
-- response shapes differ between controllers
-- no pagination, filtering, or sorting contracts exist on list endpoints
+- backend request validation uses minimal inline checks (recommend migrating to `zod` for all endpoints)
+- no pagination, filtering, or sorting on list endpoints (all data returned at once)
 - no versioned API namespace beyond `/api`
 
-### UI and Workflow Gaps
-
-- vendor onboarding form collects `contactPerson` and `description`, but those fields are not persisted
-- vendor "Book Service" is a placeholder UI action only
-- payment creation exists in the API but no real payment workflow exists in the frontend
-- booking status enum includes `cancelled`, but the staff UI only exposes `pending`, `confirmed`, and `rejected`
-- settings and security pages are mostly presentational
+- vendor "Book Service" button is a UI placeholder with `alert()` only (no backend integration)
+- payment automation works (auto-creates on confirmation), but no real payment gateway (Stripe/PayPal) integration
+- booking status enum includes `cancelled`, but the staff UI dropdown only exposes `pending`, `confirmed`, and `rejected`
+- settings and support pages are mostly presentational (demo-ready static content)
 
 ## Recommended Next Steps
 
-1. Lock down registration so only safe public roles can be self-assigned.
-2. Enable `helmet`, rate limiting, and stricter CORS in the backend bootstrap.
-3. Add server-side request validation with `zod` for all write endpoints.
-4. Standardize API responses across all controllers.
-5. Introduce server-enforced authorization for staff-only dashboard routes where needed.
-6. Add ownership metadata to venues and formal relationships for vendor service requests.
-7. Convert `Booking.eventDate` to a real date field.
-8. Add CRUD completeness for venues, vendors, bookings, and payments.
-9. Add pagination and query filters for list endpoints.
-10. Replace placeholder payment and vendor workflows with persisted transactions.
+1. **Advanced Validation**: Implement server-side request validation with `zod` for all write endpoints to harden the application further.
+2. **API Standardization**: Migrate payment controller to use `ApiResponse`/`ApiError` utilities for consistency with other controllers.
+3. **Entity Ownership**: Add ownership metadata to venues (`ownerId`/`managerId`) and formal relationships for vendor service requests.
+4. **Operational Completeness**: Add full CRUD completeness (Update/Delete) for venues, vendors, and payments.
+5. **Performance**: Add pagination and query filters (search/sort) for all list endpoints.
+6. **Workflow Automation**: Replace placeholder vendor "Book Service" UI with persisted service requests and linked payments.
+7. **Financial Integration**: Transition from mocked payments to a sandbox environment for a real gateway (e.g., Stripe/PayPal).
+8. **Containerization**: Add Docker/containerization setup for easier deployment and development.
+9. **Production Observability**: Implement structured logging (Winston/Bunyan) and health check monitoring.
+10. **Customer Self-Service**: Implement booking cancellation workflow for customers.
 
 ## Canonical Documentation Note
 

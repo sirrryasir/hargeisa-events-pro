@@ -1,21 +1,43 @@
 import { type Request, type Response } from "express";
 import Vendor from "../models/vendor.model.js";
+import { asyncHandler, ApiResponse, ApiError } from "../lib/apiUtils.js";
 
-export const getVendors = async (req: Request, res: Response) => {
-  try {
-    const vendors = await Vendor.find();
-    res.status(200).json({ success: true, data: vendors });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching vendors" });
-  }
-};
+/**
+ * @desc    Get all vendors
+ * @route   GET /api/vendors
+ */
+export const getVendors = asyncHandler(async (req: Request, res: Response) => {
+  const vendors = await Vendor.find().sort({ createdAt: -1 });
+  
+  res.status(200).json(
+    new ApiResponse(200, vendors, "Vendors fetched successfully")
+  );
+});
 
-export const createVendor = async (req: Request, res: Response) => {
-  try {
-    const vendor = new Vendor(req.body);
-    await vendor.save();
-    res.status(201).json({ success: true, data: vendor });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Error creating vendor" });
+/**
+ * @desc    Create a new vendor
+ * @route   POST /api/vendors
+ */
+export const createVendor = asyncHandler(async (req: Request, res: Response) => {
+  const { name, type, contactEmail, contactPhone, contactPerson, description } = req.body;
+
+  if (!name || !type || !contactEmail || !contactPhone) {
+    throw new ApiError(400, "Please provide all required fields");
   }
-};
+
+  const vendor = await Vendor.create({
+    name,
+    type,
+    contactEmail,
+    contactPhone,
+    contactPerson,
+    description,
+    status: "available",
+    rating: 0,
+    projects: 0
+  });
+
+  res.status(201).json(
+    new ApiResponse(201, vendor, "Vendor created successfully")
+  );
+});

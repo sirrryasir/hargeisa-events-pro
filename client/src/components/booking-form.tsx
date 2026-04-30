@@ -37,9 +37,10 @@ const bookingSchema = z.object({
 interface BookingFormProps {
   onSuccess?: () => void;
   initialVenueId?: string;
+  initialVenueName?: string;
 }
 
-export function BookingForm({ onSuccess, initialVenueId }: BookingFormProps) {
+export function BookingForm({ onSuccess, initialVenueId, initialVenueName }: BookingFormProps) {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -73,7 +74,9 @@ export function BookingForm({ onSuccess, initialVenueId }: BookingFormProps) {
     try {
       await api.post("/bookings", values);
       form.reset();
-      if (onSuccess) onSuccess();
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       console.error("Error creating booking:", error);
     } finally {
@@ -85,30 +88,43 @@ export function BookingForm({ onSuccess, initialVenueId }: BookingFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-6">
         <div className="grid grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="venue"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-black">Target Venue</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="rounded-none border-slate-200 focus:border-black font-bold h-12">
-                      <SelectValue placeholder="Select a venue" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="rounded-none border-2 border-black">
-                    {venues.map((venue) => (
-                      <SelectItem key={venue._id} value={venue._id}>
-                        {venue.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage className="text-[10px] font-bold uppercase" />
-              </FormItem>
-            )}
-          />
+          {initialVenueId ? (
+            <FormItem>
+              <FormLabel className="text-[10px] font-black uppercase tracking-widest text-black">Target Venue</FormLabel>
+              <FormControl>
+                <Input 
+                  value={initialVenueName} 
+                  readOnly 
+                  className="rounded-none border-slate-200 bg-slate-50 text-slate-500 font-bold h-12 cursor-not-allowed" 
+                />
+              </FormControl>
+            </FormItem>
+          ) : (
+            <FormField
+              control={form.control}
+              name="venue"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-black">Target Venue</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="rounded-none border-slate-200 focus:border-black font-bold h-12">
+                        <SelectValue placeholder="Select a venue" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="rounded-none border-2 border-black">
+                      {venues.map((venue) => (
+                        <SelectItem key={venue._id} value={venue._id}>
+                          {venue.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-[10px] font-bold uppercase" />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={form.control}
             name="eventType"
