@@ -2,8 +2,6 @@
 
 Technical documentation for the current Hargeisa Events Pro MVP.
 
-**Project Status**: 🟢 Demo-Ready (v0.9 MVP) - Last updated: April 2026
-
 This repository implements a MERN-style event booking platform with:
 - a Next.js frontend in `client/`
 - an Express + MongoDB API in `server/`
