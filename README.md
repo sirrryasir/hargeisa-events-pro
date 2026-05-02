@@ -3,10 +3,12 @@
 Technical documentation for the current Hargeisa Events Pro MVP.
 
 This repository implements a MERN-style event booking platform with:
+
 - a Next.js frontend in `client/`
 - an Express + MongoDB API in `server/`
 
 The current deployment topology is:
+
 - frontend on Vercel
 - backend API on Render
 - database on MongoDB
@@ -31,6 +33,7 @@ The current deployment topology is:
 ## Project Summary
 
 Hargeisa Events Pro is an MVP for managing:
+
 - venues
 - booking requests
 - vendor listings
@@ -38,11 +41,13 @@ Hargeisa Events Pro is an MVP for managing:
 - role-based dashboard access
 
 The application supports three user roles:
+
 - `admin`
 - `manager`
 - `customer`
 
 Core workflow:
+
 1. A user authenticates through the frontend.
 2. NextAuth delegates credential verification to the backend REST API.
 3. The backend issues a JWT.
@@ -125,7 +130,9 @@ Core workflow:
 - `express-rate-limit`
 
 ### Active Runtime Protections
+
 The backend now enforces the following production-grade middlewares:
+
 - `helmet`: Secure HTTP headers
 - `compression`: Payload optimization
 - `express-rate-limit`: Brute-force and DoS protection
@@ -182,6 +189,7 @@ All routes under `/dashboard/*` are matched by NextAuth middleware in `client/sr
 #### Session model
 
 The frontend does not maintain its own user database or JWT issuer. Instead:
+
 - NextAuth `CredentialsProvider` posts user credentials to the backend login endpoint
 - the backend returns `{ user, token }`
 - the token is stored in the NextAuth JWT callback as `accessToken`
@@ -190,6 +198,7 @@ The frontend does not maintain its own user database or JWT issuer. Instead:
 #### API client
 
 `client/src/lib/api.ts` creates a shared Axios instance with:
+
 - `baseURL = NEXT_PUBLIC_API_URL`
 - `Content-Type: application/json`
 - a request interceptor that fetches the current NextAuth session and injects `Authorization: Bearer <accessToken>`
@@ -199,6 +208,7 @@ The frontend does not maintain its own user database or JWT issuer. Instead:
 The local UI layer is organized under `client/src/components/ui/`.
 
 Characteristics:
+
 - shadcn-style component layout and aliases from `client/components.json`
 - utility-first styling with Tailwind classes
 - several primitives implemented with `@base-ui/react`
@@ -208,6 +218,7 @@ Characteristics:
 #### Role-aware UI behavior
 
 Role-based navigation and page behavior are mostly client-driven:
+
 - customers get a reduced sidebar
 - customers are redirected away from staff-oriented pages such as bookings, vendors, and reports
 - staff users can access create forms for venues and vendors
@@ -219,6 +230,7 @@ Important: page-level role restrictions in the frontend are largely implemented 
 The backend is a single Express application mounted under `/api`.
 
 Bootstrap pipeline:
+
 1. load environment variables with `dotenv`
 2. connect to MongoDB through Mongoose
 3. register `cors()`
@@ -240,12 +252,14 @@ Bootstrap pipeline:
 Contollers are thin and operate directly on Mongoose models. There is no service layer, policy layer, or domain abstraction between routes and persistence.
 
 Response shape is **mostly standardized** across the API:
+
 - Most controllers use `ApiResponse` and `ApiError` utilities for consistent frontend consumption
 - **Exception**: Payment controller uses legacy `{ success, data }` format instead of `ApiResponse` class (frontend handles both formats correctly)
 
 ### Data Access Pattern
 
 The application uses direct model queries inside controllers:
+
 - `find`
 - `findById`
 - `findByIdAndUpdate`
@@ -284,23 +298,24 @@ The backend exposes three auth middlewares/patterns:
 
 ### RBAC Matrix
 
-| Capability | Admin | Manager | Customer | Anonymous |
-| --- | --- | --- | --- | --- |
-| Register account | Yes | Yes | Yes (Forced) | Yes |
-| Login | Yes | Yes | Yes | Yes |
-| View venues | Yes | Yes | Yes | Yes |
-| Create venue | Yes | Yes | No | No |
-| View bookings | All | All | Own only | No |
-| Create booking | Yes | Yes | Yes | Yes |
-| Update booking status | Yes | Yes | No | No |
-| Submit booking rating/feedback | Yes | Yes | Own only | No |
-| View vendors | Yes | Yes | Yes, but redirected away from page | Yes via API |
-| Create vendor | Yes | Yes | No | No |
-| View payments | All | All | Own only | No |
-| Create payment | Yes | Yes | No | No |
-| View reports page | Yes | Yes | No | No |
+| Capability                     | Admin | Manager | Customer                           | Anonymous   |
+| ------------------------------ | ----- | ------- | ---------------------------------- | ----------- |
+| Register account               | Yes   | Yes     | Yes (Forced)                       | Yes         |
+| Login                          | Yes   | Yes     | Yes                                | Yes         |
+| View venues                    | Yes   | Yes     | Yes                                | Yes         |
+| Create venue                   | Yes   | Yes     | No                                 | No          |
+| View bookings                  | All   | All     | Own only                           | No          |
+| Create booking                 | Yes   | Yes     | Yes                                | Yes         |
+| Update booking status          | Yes   | Yes     | No                                 | No          |
+| Submit booking rating/feedback | Yes   | Yes     | Own only                           | No          |
+| View vendors                   | Yes   | Yes     | Yes, but redirected away from page | Yes via API |
+| Create vendor                  | Yes   | Yes     | No                                 | No          |
+| View payments                  | All   | All     | Own only                           | No          |
+| Create payment                 | Yes   | Yes     | No                                 | No          |
+| View reports page              | Yes   | Yes     | No                                 | No          |
 
 Notes:
+
 - `manager` and `admin` currently behave the same in the API.
 - customer access to staff pages is primarily prevented in the frontend through client redirects.
 - anonymous booking creation is explicitly supported through `optionalProtect`.
@@ -322,6 +337,7 @@ Vendor (standalone)
 Collection: `users`
 
 Fields:
+
 - `name: string`
 - `email: string` unique, lowercased
 - `password: string` excluded from default query selection
@@ -329,6 +345,7 @@ Fields:
 - timestamps
 
 Behavior:
+
 - password hashing via Mongoose pre-save hook
 - password comparison via instance method using bcrypt
 
@@ -337,6 +354,7 @@ Behavior:
 Collection: `venues`
 
 Fields:
+
 - `name: string`
 - `type: "hotel" | "hall"`
 - `address: string`
@@ -349,6 +367,7 @@ Fields:
 - timestamps
 
 Behavior:
+
 - no ownership field
 - no manager/user reference
 - no dedicated availability table
@@ -358,6 +377,7 @@ Behavior:
 Collection: `vendors`
 
 Fields:
+
 - `name: string`
 - `type: string`
 - `rating: number`
@@ -370,6 +390,7 @@ Fields:
 - timestamps
 
 Behavior:
+
 - standalone directory model
 - no relation to `Booking`, `Venue`, or `User`
 
@@ -378,6 +399,7 @@ Behavior:
 Collection: `bookings`
 
 Fields:
+
 - `user?: ObjectId -> User`
 - `venue: ObjectId -> Venue`
 - `clientName: string`
@@ -392,6 +414,7 @@ Fields:
 - timestamps
 
 Behavior:
+
 - can be anonymous or linked to an authenticated customer
 - venue is populated for listing views
 - customer reads are ownership-scoped
@@ -403,6 +426,7 @@ Behavior:
 Collection: `payments`
 
 Fields:
+
 - `transactionId: string` unique
 - `bookingId: ObjectId -> Booking`
 - `clientName: string`
@@ -414,6 +438,7 @@ Fields:
 - timestamps
 
 Behavior:
+
 - denormalizes `clientName` and `venueName`
 - customer visibility is filtered by `bookingId.user`
 
@@ -432,6 +457,7 @@ In production, `NEXT_PUBLIC_API_URL` should point to the deployed Render API wit
 ### `POST /auth/register`
 
 Registers a new user and returns:
+
 - user summary
 - JWT
 
@@ -449,6 +475,7 @@ Request body:
 ### `POST /auth/login`
 
 Authenticates a user and returns:
+
 - user summary
 - JWT
 
@@ -461,6 +488,7 @@ Public. Returns all venues.
 ### `POST /venues`
 
 Protected. Roles allowed:
+
 - `admin`
 - `manager`
 
@@ -475,6 +503,7 @@ Public. Returns a single venue.
 Protected.
 
 Behavior:
+
 - `admin` and `manager` receive all bookings
 - `customer` receives only bookings where `booking.user === req.user._id`
 
@@ -483,6 +512,7 @@ Behavior:
 Public or authenticated.
 
 Behavior:
+
 - validates required fields
 - if `req.user` exists, attaches `user`
 - otherwise creates an anonymous booking
@@ -492,6 +522,7 @@ Behavior:
 Protected.
 
 Behavior:
+
 - `customer`
   - may update only own bookings
   - may not change `status`
@@ -514,6 +545,7 @@ Public.
 ### `POST /vendors`
 
 Protected. Roles allowed:
+
 - `admin`
 - `manager`
 
@@ -524,12 +556,14 @@ Protected. Roles allowed:
 Protected.
 
 Behavior:
+
 - `admin` and `manager` receive all payments
 - `customer` receives only payments whose populated booking owner matches the current user
 
 ### `POST /payments`
 
 Protected. Roles allowed:
+
 - `admin`
 - `manager`
 
@@ -542,6 +576,13 @@ Protected. Roles allowed:
 - MongoDB instance
 
 This repository does not include a root `package.json`. The frontend and backend are installed and run independently.
+
+### Cloning the repository
+
+```bash
+git clone https://github.com/sirrryasir/hargeisa-events-pro.git
+cd hargeisa-events-pro
+```
 
 ### 1. Install Dependencies
 
@@ -579,6 +620,7 @@ NEXTAUTH_URL=http://localhost:3000
 ```
 
 Notes:
+
 - `NEXT_PUBLIC_API_URL` must include `/api`
 - `NEXTAUTH_URL` is required for reliable deployed NextAuth behavior
 - the code contains fallback secrets for development, but production must always define explicit secrets
@@ -637,15 +679,16 @@ npm run data:destroy
 
 ## Seeded Accounts
 
-| Role | Email | Password |
-| --- | --- | --- |
-| Admin | `admin@example.com` | `password123` |
-| Manager | `manager@example.com` | `password123` |
+| Role     | Email                  | Password      |
+| -------- | ---------------------- | ------------- |
+| Admin    | `admin@example.com`    | `password123` |
+| Manager  | `manager@example.com`  | `password123` |
 | Customer | `customer@example.com` | `password123` |
 
 ## Seeded Domain Records
 
 The seeder currently creates:
+
 - 3 users (admin, manager, customer)
 - 4 venues (Ambassador Hotel, Mansoor Hotel, Oriental Hall, Rays Hotel)
 - 4 vendors (Golden Decor, Elite Catering, Hargeisa Sounds, Somaliland Lens)
