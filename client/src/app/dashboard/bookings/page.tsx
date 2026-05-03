@@ -76,7 +76,8 @@ export default function BookingsPage() {
 
   const filteredBookings = bookings.filter(b => 
     b.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    b.venue?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (b.venue?.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+    (b.vendor?.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
     b.eventType.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -99,23 +100,25 @@ export default function BookingsPage() {
           >
             <Download className="mr-2 h-4 w-4" /> Export
           </Button>
-          <Dialog>
-            <DialogTrigger render={
-              <Button className="bg-black text-white rounded-none hover:bg-slate-800 uppercase text-xs font-bold tracking-widest gap-2 h-12 px-6">
-                <Plus className="h-4 w-4" />
-                New Booking
-              </Button>
-            } />
-            <DialogContent className="max-w-2xl rounded-none border-2 border-black">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-bold text-black uppercase tracking-tight">Create Booking</DialogTitle>
-                <DialogDescription className="text-xs font-bold uppercase text-slate-400">
-                  New reservation entry for the Hargeisa events pipeline.
-                </DialogDescription>
-              </DialogHeader>
-              <BookingForm onSuccess={fetchBookings} />
-            </DialogContent>
-          </Dialog>
+          {session?.user?.role === "customer" && (
+            <Dialog>
+              <DialogTrigger render={
+                <Button className="bg-black text-white rounded-none hover:bg-slate-800 uppercase text-xs font-bold tracking-widest gap-2 h-12 px-6">
+                  <Plus className="h-4 w-4" />
+                  New Booking
+                </Button>
+              } />
+              <DialogContent className="max-w-2xl rounded-none border-2 border-black">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold text-black uppercase tracking-tight">Create Booking</DialogTitle>
+                  <DialogDescription className="text-xs font-bold uppercase text-slate-400">
+                    New reservation entry for the Hargeisa events pipeline.
+                  </DialogDescription>
+                </DialogHeader>
+                <BookingForm onSuccess={fetchBookings} />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -136,7 +139,7 @@ export default function BookingsPage() {
           <TableHeader className="bg-slate-50">
             <TableRow className="border-slate-200 hover:bg-transparent">
               <TableHead className="pl-6 font-bold text-black uppercase text-[10px] tracking-widest py-4">Client Identifier</TableHead>
-              <TableHead className="font-bold text-black uppercase text-[10px] tracking-widest">Venue Asset</TableHead>
+              <TableHead className="font-bold text-black uppercase text-[10px] tracking-widest">Target Asset</TableHead>
               <TableHead className="font-bold text-black uppercase text-[10px] tracking-widest">Type</TableHead>
               <TableHead className="font-bold text-black uppercase text-[10px] tracking-widest">Date</TableHead>
               <TableHead className="font-bold text-black uppercase text-[10px] tracking-widest">Status</TableHead>
@@ -149,7 +152,13 @@ export default function BookingsPage() {
                 <TableCell className="pl-6 font-bold text-black py-4">
                   {booking.clientName}
                 </TableCell>
-                <TableCell className="font-medium text-slate-600">{booking.venue?.name || "N/A"}</TableCell>
+                <TableCell className="font-medium text-slate-600">
+                  {booking.venue ? (
+                    <span>{booking.venue.name} <Badge className="ml-2 text-[8px] bg-slate-100 text-slate-500 rounded-none uppercase">Venue</Badge></span>
+                  ) : booking.vendor ? (
+                    <span>{booking.vendor.name} <Badge className="ml-2 text-[8px] bg-slate-100 text-slate-500 rounded-none uppercase">Vendor</Badge></span>
+                  ) : "N/A"}
+                </TableCell>
                 <TableCell className="capitalize text-slate-500 font-medium">{booking.eventType}</TableCell>
                 <TableCell className="tabular-nums font-medium text-slate-600">
                   {new Date(booking.eventDate).toLocaleDateString('en-GB')}

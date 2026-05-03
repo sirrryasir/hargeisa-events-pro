@@ -25,7 +25,7 @@ import api from "@/lib/api";
 import { Venue } from "@/lib/types";
 
 const bookingSchema = z.object({
-  venue: z.string().min(1, "Please select a venue"),
+  targetId: z.string().min(1, "Please select an asset"),
   clientName: z.string().min(2, "Client name is required"),
   clientPhone: z.string().min(7, "Valid phone number is required"),
   eventType: z.string().min(1, "Please select an event type"),
@@ -36,11 +36,13 @@ const bookingSchema = z.object({
 
 interface BookingFormProps {
   onSuccess?: () => void;
-  initialVenueId?: string;
-  initialVenueName?: string;
+  targetType?: "venue" | "vendor";
+  initialTargetId?: string;
+  initialTargetName?: string;
+  initialDate?: string;
 }
 
-export function BookingForm({ onSuccess, initialVenueId, initialVenueName }: BookingFormProps) {
+export function BookingForm({ onSuccess, targetType = "venue", initialTargetId, initialTargetName, initialDate }: BookingFormProps) {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,26 +61,83 @@ export function BookingForm({ onSuccess, initialVenueId, initialVenueName }: Boo
   const form = useForm<z.infer<typeof bookingSchema>>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      venue: initialVenueId || "",
+      targetId: initialTargetId || "",
       clientName: "",
       clientPhone: "",
       eventType: "",
-      eventDate: "",
+      eventDate: initialDate || "",
       guestCount: 0,
       notes: "",
     },
   });
 
+  const [error, setError] = useState<string | null>(null);
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+
+  const selectedVenueId = form.watch("targetId");
+  const selectedDate = form.watch("eventDate");
+
+  useEffect(() => {
+    const checkAvailability = async () => {
+      if (targetType !== "venue" || !selectedVenueId || !selectedDate) {
+        setIsAvailable(true);
+        return;
+      }
+
+      setAvailabilityLoading(true);
+      try {
+        const res = await api.get(`/bookings/availability/${selectedVenueId}`);
+        const occupiedDates = res.data.data;
+        const isTaken = occupiedDates.includes(selectedDate);
+        setIsAvailable(!isTaken);
+        if (isTaken) {
+          setError("This venue is already booked or has a pending request for the selected date");
+        } else {
+          setError(null);
+        }
+      } catch (err) {
+        console.error("Availability check failed:", err);
+      } finally {
+        setAvailabilityLoading(false);
+      }
+    };
+
+    const delayDebounce = setTimeout(checkAvailability, 500);
+    return () => clearTimeout(delayDebounce);
+  }, [selectedVenueId, selectedDate, targetType]);
+
   async function onSubmit(values: z.infer<typeof bookingSchema>) {
+    if (!isAvailable) return;
     setIsSubmitting(true);
+    setError(null);
     try {
-      await api.post("/bookings", values);
+      const payload: any = {
+        clientName: values.clientName,
+        clientPhone: values.clientPhone,
+        eventType: values.eventType,
+        eventDate: values.eventDate,
+        guestCount: values.guestCount,
+        notes: values.notes,
+      };
+      
+      if (targetType === "venue") {
+        payload.venue = values.targetId;
+      } else {
+        payload.vendor = values.targetId;
+      }
+
+      await api.post("/bookings", payload);
       form.reset();
       if (onSuccess) {
         onSuccess();
       }
-    } catch (error) {
-      console.error("Error creating booking:", error);
+    } catch (err: any) {
+      const message = err.response?.data?.message || "Failed to create booking. Please check for double-bookings.";
+      setError(message);
+      if (err.response?.status !== 400) {
+        console.error("Error creating booking:", err);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -88,12 +147,12 @@ export function BookingForm({ onSuccess, initialVenueId, initialVenueName }: Boo
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-6">
         <div className="grid grid-cols-2 gap-6">
-          {initialVenueId ? (
+          {initialTargetId ? (
             <FormItem>
-              <FormLabel className="text-[10px] font-black uppercase tracking-widest text-black">Target Venue</FormLabel>
+              <FormLabel className="text-[10px] font-black uppercase tracking-widest text-black">Target {targetType}</FormLabel>
               <FormControl>
                 <Input 
-                  value={initialVenueName} 
+                  value={initialTargetName || venues.find(v => v._id === initialTargetId)?.name || "Selected Asset"} 
                   readOnly 
                   className="rounded-none border-slate-200 bg-slate-50 text-slate-500 font-bold h-12 cursor-not-allowed" 
                 />
@@ -102,15 +161,18 @@ export function BookingForm({ onSuccess, initialVenueId, initialVenueName }: Boo
           ) : (
             <FormField
               control={form.control}
-              name="venue"
+              name="targetId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-[10px] font-black uppercase tracking-widest text-black">Target Venue</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="rounded-none border-slate-200 focus:border-black font-bold h-12">
-                        <SelectValue placeholder="Select a venue" />
+                        <SelectValue placeholder="Select a venue">
+                          {venues.find(v => v._id === field.value)?.name}
+                        </SelectValue>
                       </SelectTrigger>
+
                     </FormControl>
                     <SelectContent className="rounded-none border-2 border-black">
                       {venues.map((venue) => (
@@ -229,8 +291,18 @@ export function BookingForm({ onSuccess, initialVenueId, initialVenueName }: Boo
           )}
         />
 
-        <Button type="submit" className="w-full rounded-none bg-black text-white h-12 text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-none" disabled={isSubmitting}>
-          {isSubmitting ? "Processing..." : "Create Booking Request"}
+        {error && (
+          <div className="bg-red-50 border border-red-100 p-3">
+            <span className="text-[10px] font-bold text-red-600 uppercase tracking-widest">{error}</span>
+          </div>
+        )}
+
+        <Button 
+          type="submit" 
+          className="w-full rounded-none bg-black text-white h-12 text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-none disabled:opacity-50 disabled:cursor-not-allowed" 
+          disabled={isSubmitting || !isAvailable || availabilityLoading}
+        >
+          {isSubmitting ? "Processing..." : availabilityLoading ? "Checking Availability..." : !isAvailable ? "Date Unavailable" : "Create Booking Request"}
         </Button>
       </form>
     </Form>

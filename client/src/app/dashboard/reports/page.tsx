@@ -36,7 +36,7 @@ export default function ReportsPage() {
         const [bookingsRes, venuesRes, paymentsRes] = await Promise.all([
           api.get("/bookings"),
           api.get("/venues"),
-          api.get("/payments")
+          api.get("/payments").catch(() => ({ data: { data: [] } }))
         ]);
 
         const paymentsData = paymentsRes.data.data as Payment[];

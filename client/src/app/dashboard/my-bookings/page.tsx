@@ -12,11 +12,14 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogTrigger,
-  DialogDescription
+  DialogDescription,
+  DialogFooter,
+  DialogClose
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import api from "@/lib/api";
 import { Booking } from "@/lib/types";
+import { generateInvoicePDF } from "@/lib/pdf";
 
 export default function MyBookingsPage() {
   const { data: session } = useSession();
@@ -36,10 +39,17 @@ export default function MyBookingsPage() {
     if (session) fetchMyBookings();
   }, [session]);
 
-  const handleDownloadInvoice = () => {
-    // In a real app, this would generate a PDF
-    // For now, we'll open the print dialog formatted for receipt
-    window.print();
+  const handleDownloadInvoice = (booking: any) => {
+    const paymentData = {
+      transactionId: booking._id.slice(-8).toUpperCase(),
+      clientName: booking.clientName,
+      venueName: booking.venue?.name || "Service Reservation",
+      amount: booking.venue?.pricePerDay || 0,
+      type: booking.eventType,
+      status: booking.status === 'confirmed' ? 'paid' : 'pending',
+      paymentDate: booking.eventDate
+    };
+    generateInvoicePDF(paymentData);
   };
 
   const handleFeedbackSubmit = async (id: string) => {
@@ -96,11 +106,20 @@ export default function MyBookingsPage() {
                   <div className="flex-1 p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        <Building2 size={12} /> Venue
+                        <Building2 size={12} /> Target Asset
                       </div>
-                      <div className="text-sm font-black text-black uppercase tracking-tight">{booking.venue?.name || "N/A"}</div>
+                      <div className="text-sm font-black text-black uppercase tracking-tight flex items-center gap-2">
+                        {booking.venue ? (
+                          <>
+                            {booking.venue.name} <Badge className="text-[8px] bg-slate-100 text-slate-500 rounded-none uppercase">Venue</Badge>
+                          </>
+                        ) : booking.vendor ? (
+                          <>
+                            {booking.vendor.name} <Badge className="text-[8px] bg-slate-100 text-slate-500 rounded-none uppercase">Vendor</Badge>
+                          </>
+                        ) : "N/A"}
+                      </div>
                     </div>
-
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                         <Calendar size={12} /> Event Date
@@ -141,25 +160,46 @@ export default function MyBookingsPage() {
                                 value={feedbackDraft[booking._id] || ""}
                                 onChange={(e) => setFeedbackDraft((prev) => ({ ...prev, [booking._id]: e.target.value }))}
                               />
-                              <Button
-                                onClick={() => handleFeedbackSubmit(booking._id)}
-                                className="w-full rounded-none bg-black text-white h-10 text-[10px] font-black uppercase tracking-widest hover:bg-slate-800"
-                                disabled={!ratingDraft[booking._id]}
-                              >
-                                Submit Feedback
-                              </Button>
                             </div>
+                            <DialogFooter>
+                              <Button 
+                                onClick={() => handleFeedbackSubmit(booking._id)}
+                                className="rounded-none bg-black text-white hover:bg-slate-800 text-[10px] font-bold uppercase tracking-widest h-10 px-8"
+                              >
+                                Submit Review
+                              </Button>
+                            </DialogFooter>
                           </DialogContent>
                         </Dialog>
                       )}
+
                       {booking.status === 'pending' && (
-                        <Button 
-                          variant="outline" 
-                          onClick={() => handleCancelBooking(booking._id)}
-                          className="rounded-none border-red-200 text-red-500 text-[10px] font-bold uppercase tracking-widest h-10 px-6 hover:bg-red-50 hover:border-red-500 transition-all"
-                        >
-                          Cancel
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger render={
+                            <Button variant="destructive" className="rounded-none text-[10px] font-bold uppercase tracking-widest h-10 px-6 bg-red-50 text-red-500 border-red-100 hover:bg-red-500 hover:text-white transition-all">
+                              Cancel
+                            </Button>
+                          } />
+                          <DialogContent className="max-w-md rounded-none border-2 border-black">
+                            <DialogHeader>
+                              <DialogTitle className="text-xl font-bold uppercase">Confirm Cancellation</DialogTitle>
+                              <DialogDescription className="text-[10px] font-bold uppercase text-slate-400">This action will remove your reservation request.</DialogDescription>
+                            </DialogHeader>
+                            <div className="py-6 text-center">
+                              <p className="text-sm font-bold text-slate-600">Are you sure you want to cancel your booking for <span className="text-black uppercase">{booking.venue?.name || booking.vendor?.name}</span>?</p>
+                            </div>
+                            <DialogFooter className="flex gap-4">
+                              <DialogClose render={<Button variant="outline" className="flex-1 rounded-none uppercase font-bold">Keep Booking</Button>} />
+                              <Button 
+                                onClick={() => handleCancelBooking(booking._id)}
+                                variant="destructive"
+                                className="flex-1 rounded-none bg-red-600 text-white hover:bg-red-700 text-[10px] font-bold uppercase tracking-widest h-10"
+                              >
+                                Yes, Cancel
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                       )}
                       <Button 
                         variant="outline" 
@@ -168,7 +208,7 @@ export default function MyBookingsPage() {
                         <FileText size={14} className="mr-2" /> Details
                       </Button>
                       <Button 
-                        onClick={() => handleDownloadInvoice()}
+                        onClick={() => handleDownloadInvoice(booking)}
                         className="rounded-none bg-black text-white text-[10px] font-bold uppercase tracking-widest h-10 px-6 hover:bg-slate-800 transition-all"
                       >
                         <Download size={14} className="mr-2" /> Invoice

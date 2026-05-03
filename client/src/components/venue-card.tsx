@@ -1,5 +1,6 @@
 import { Building2, Users, MapPin, Phone, Calendar } from "lucide-react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,6 +27,8 @@ interface Venue {
 }
 
 export function VenueCard({ venue }: { venue: Venue }) {
+  const { data: session } = useSession();
+  const isCustomer = !session || session?.user?.role === "customer";
   const [isBookingOpen, setIsBookingOpen] = useState(false);
 
   return (
@@ -90,27 +93,30 @@ export function VenueCard({ venue }: { venue: Venue }) {
         )}
 
         <div className="flex gap-2 mt-8 pt-6 border-t border-slate-100">
-          <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
-            <DialogTrigger render={
-              <button className="flex-1 bg-black text-white py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors">
-                Book Now
-              </button>
-            } />
-            <DialogContent className="max-w-2xl rounded-none border-2 border-black">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-black text-black uppercase tracking-tight">Direct Reservation</DialogTitle>
-                <DialogDescription className="text-[10px] font-bold uppercase text-slate-400">Secure your date for {venue.name} immediately.</DialogDescription>
-              </DialogHeader>
-              <BookingForm 
-                initialVenueId={venue._id} 
-                initialVenueName={venue.name}
-                onSuccess={() => setIsBookingOpen(false)} 
-              />
-            </DialogContent>
-          </Dialog>
+          {isCustomer && (
+            <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
+              <DialogTrigger render={
+                <button className="flex-1 bg-black text-white py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors">
+                  Book Now
+                </button>
+              } />
+              <DialogContent className="max-w-2xl rounded-none border-2 border-black">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-black text-black uppercase tracking-tight">Direct Reservation</DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold uppercase text-slate-400">Secure your date for {venue.name} immediately.</DialogDescription>
+                </DialogHeader>
+                <BookingForm 
+                  targetType="venue"
+                  initialTargetId={venue._id} 
+                  initialTargetName={venue.name}
+                  onSuccess={() => setIsBookingOpen(false)} 
+                />
+              </DialogContent>
+            </Dialog>
+          )}
           
           <Link 
-            href="/dashboard/calendar"
+            href={`/dashboard/calendar?venueId=${venue._id}&venueName=${encodeURIComponent(venue.name)}`}
             className="flex-1 border border-black text-black py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
           >
             <Calendar className="h-3 w-3" />

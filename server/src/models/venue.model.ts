@@ -10,6 +10,7 @@ export interface IVenue extends Document {
   imageUrl: string;
   contactPhone: string;
   description: string;
+  manager?: mongoose.Types.ObjectId;
 }
 
 const venueSchema: Schema = new Schema(
@@ -21,8 +22,10 @@ const venueSchema: Schema = new Schema(
     pricePerDay: { type: Number, required: true },
     amenities: [{ type: String }],
     imageUrl: { type: String, default: "/venues/default.jpg" },
+    images: [{ type: String }],
     contactPhone: { type: String, required: true },
     description: { type: String, trim: true },
+    manager: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );

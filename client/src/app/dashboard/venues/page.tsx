@@ -51,7 +51,7 @@ export default function VenuesPage() {
             Premium Hotels and Event Halls in Hargeisa.
           </p>
         </div>
-        {!isCustomer && (
+        {session?.user?.role === "admin" && (
           <Dialog>
             <DialogTrigger render={
               <Button className="bg-black text-white rounded-none hover:bg-slate-800 uppercase text-xs font-bold tracking-widest gap-2 h-12 px-8 transition-all">

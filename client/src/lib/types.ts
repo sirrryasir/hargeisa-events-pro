@@ -20,13 +20,26 @@ export interface Venue {
   pricePerDay: number;
   amenities: string[];
   imageUrl?: string;
+  images?: string[];
   contactPhone: string;
+  description: string;
+}
+
+export interface Vendor {
+  _id: string;
+  name: string;
+  type: string;
+  contactEmail: string;
+  contactPhone: string;
+  contactPerson: string;
   description: string;
 }
 
 export interface Booking {
   _id: string;
   venue?: Venue;
+  vendor?: { _id: string; name: string; type: string; };
+  user?: { _id: string; email: string; name: string; };
   clientName: string;
   clientPhone: string;
   eventType: EventType;

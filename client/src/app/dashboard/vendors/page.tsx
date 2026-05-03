@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { VendorForm } from "@/components/vendor-form";
+import { BookingForm } from "@/components/booking-form";
 import api from "@/lib/api";
 
 interface Vendor {
@@ -72,7 +73,7 @@ export default function VendorsPage() {
             Professional service providers for Hargeisa events.
           </p>
         </div>
-        {session?.user?.role !== "customer" && (
+        {session?.user?.role === "admin" && (
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger render={
               <Button className="bg-black text-white rounded-none hover:bg-slate-800 uppercase text-xs font-bold tracking-widest gap-2 h-12 px-6">
@@ -126,42 +127,35 @@ export default function VendorsPage() {
                   </div>
                 </div>
 
-                <Dialog>
-                  <DialogTrigger render={
-                    <Button 
-                      className="w-full mt-6 rounded-none bg-black text-white hover:bg-slate-800 text-[10px] font-bold uppercase tracking-widest transition-all"
-                    >
-                      Book Service
-                    </Button>
-                  } />
-                  <DialogContent className="rounded-none border-2 border-black max-w-sm">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl font-black text-black uppercase tracking-tight">Service Request</DialogTitle>
-                      <DialogDescription className="text-[10px] font-bold uppercase text-slate-400">Requesting {vendor.name} for your event.</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-6 text-center">
-                      <div className="w-16 h-16 bg-slate-50 border-2 border-black flex items-center justify-center mx-auto mb-4">
-                        <Icon size={32} />
-                      </div>
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-tight mb-6">A notification will be sent to this vendor to contact you regarding availability.</p>
+                {session?.user?.role === "customer" && (
+                  <Dialog>
+                    <DialogTrigger render={
                       <Button 
-                        onClick={() => {
-                          alert(`Request sent to ${vendor.name}`);
-                        }}
-                        className="w-full rounded-none bg-black text-white h-12 text-[10px] font-black uppercase tracking-widest hover:bg-slate-800"
+                        className="w-full mt-6 rounded-none bg-black text-white hover:bg-slate-800 text-[10px] font-bold uppercase tracking-widest transition-all"
                       >
-                        Confirm Request
+                        Book Service
                       </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    } />
+                    <DialogContent className="rounded-none border-2 border-black max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-xl font-black text-black uppercase tracking-tight">Service Request</DialogTitle>
+                        <DialogDescription className="text-[10px] font-bold uppercase text-slate-400">Requesting {vendor.name} for your event.</DialogDescription>
+                      </DialogHeader>
+                      <BookingForm 
+                        targetType="vendor"
+                        initialTargetId={vendor._id}
+                        initialTargetName={vendor.name}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                )}
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      {session?.user?.role !== "customer" && (
+      {session?.user?.role === "admin" && (
         <div className="mt-12 p-12 border-2 border-dashed border-slate-200 flex flex-col items-center text-center">
           <div className="w-16 h-16 bg-slate-50 flex items-center justify-center text-slate-200 mb-4">
             <Building2 size={32} />

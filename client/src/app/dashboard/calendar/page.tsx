@@ -11,32 +11,49 @@ import { Booking } from "@/lib/types";
 import { exportToCSV } from "@/lib/export";
 import { Download } from "lucide-react";
 
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+} from "@/components/ui/dialog";
+
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const months = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
 ];
 
-export default function CalendarPage() {
+import { BookingForm } from "@/components/booking-form";
+
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+
+function CalendarPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const preSelectedVenueId = searchParams.get("venueId");
+  const preSelectedVenueName = searchParams.get("venueName");
+  
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [newBookingDate, setNewBookingDate] = useState<string | null>(null);
+
+  const fetchBookings = async () => {
+    try {
+      const res = await api.get("/bookings/public");
+      setBookings(res.data.data);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+    }
+  };
 
   useEffect(() => {
     if (!session) return;
-
-    const fetchBookings = async () => {
-      try {
-        const res = await api.get("/bookings");
-        setBookings(res.data.data);
-      } catch (error) {
-        console.error("Error fetching bookings:", error);
-      }
-    };
-
     fetchBookings();
     const intervalId = setInterval(fetchBookings, 15000);
-
     return () => clearInterval(intervalId);
   }, [session]);
 
@@ -55,6 +72,7 @@ export default function CalendarPage() {
   const calendarEvents = bookings.map(b => {
     const date = new Date(b.eventDate);
     return {
+      ...b,
       id: b._id,
       title: `${b.clientName} (${b.venue?.name || 'N/A'})`,
       date: date.getDate(),
@@ -112,11 +130,30 @@ export default function CalendarPage() {
                 const day = i + 1;
                 const dayBookings = calendarEvents.filter(b => b.date === day);
                 return (
-                  <div key={day} className="border-b border-r border-slate-100 p-2 hover:bg-slate-50 transition-colors">
+                  <div 
+                    key={day} 
+                    onClick={() => {
+                      if (dayBookings.length === 0 && session?.user?.role === "customer") {
+                        const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        setNewBookingDate(dateStr);
+                      }
+                    }}
+                    className={`border-b border-r border-slate-100 p-2 hover:bg-slate-50 transition-colors ${
+                      session?.user?.role === "customer" && dayBookings.length === 0 ? "cursor-pointer" : "cursor-default"
+                    }`}
+                  >
                     <span className="text-xs font-bold text-slate-300">{day}</span>
                     <div className="mt-2 space-y-1">
                       {dayBookings.map(b => (
-                        <div key={b.id} className={`${b.color} text-[8px] text-white p-1 rounded-none truncate font-bold uppercase tracking-tight`} title={b.title}>
+                        <div 
+                          key={b.id} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBooking(b as unknown as Booking);
+                          }}
+                          className={`${b.color} text-[8px] text-white p-1 rounded-none truncate font-bold uppercase tracking-tight cursor-pointer hover:opacity-80 transition-opacity`} 
+                          title={b.title}
+                        >
                           {b.title}
                         </div>
                       ))}
@@ -156,7 +193,11 @@ export default function CalendarPage() {
             <CardContent className="pt-6">
               <div className="space-y-6">
                 {calendarEvents.slice(0, 3).map(event => (
-                  <div key={`upcoming-${event.id}`} className="flex flex-col gap-2 border-b border-slate-50 pb-4 last:border-0 last:pb-0">
+                  <div 
+                    key={`upcoming-${event.id}`} 
+                    className="flex flex-col gap-2 border-b border-slate-50 pb-4 last:border-0 last:pb-0 cursor-pointer hover:bg-slate-50 p-2 transition-colors"
+                    onClick={() => setSelectedBooking(event as unknown as Booking)}
+                  >
                     <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Date: {event.date} {months[event.month]}</span>
                     <span className="text-xs font-bold text-black uppercase tracking-tight">{event.title}</span>
                     <Badge className={`w-fit rounded-none text-[8px] font-bold uppercase ${event.status === "confirmed" ? "bg-black text-white" : "bg-slate-100 text-slate-500"}`}>
@@ -172,6 +213,96 @@ export default function CalendarPage() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
+        <DialogContent className="max-w-md rounded-none border-black">
+          <DialogHeader className="border-b border-slate-100 pb-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <DialogTitle className="text-sm font-black uppercase tracking-tighter">Event Protocol Details</DialogTitle>
+                <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                  System ID: {selectedBooking?._id}
+                </DialogDescription>
+              </div>
+              <Badge className={`rounded-none text-[8px] font-bold uppercase ${selectedBooking?.status === "confirmed" ? "bg-black text-white" : "bg-slate-100 text-slate-500"}`}>
+                {selectedBooking?.status}
+              </Badge>
+            </div>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Client Name</span>
+                <p className="text-xs font-bold text-black uppercase">{selectedBooking?.clientName}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Client Email</span>
+                <p className="text-xs font-bold text-black lowercase">{selectedBooking?.user?.email || "N/A"}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Venue Details</span>
+                <p className="text-xs font-bold text-black uppercase">{selectedBooking?.venue?.name}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Event Date</span>
+                <p className="text-xs font-bold text-black uppercase">
+                  {selectedBooking ? new Date(selectedBooking.eventDate).toLocaleDateString() : ''}
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-slate-50 border border-slate-100">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Additional Requirements</span>
+              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                {selectedBooking?.notes || "No specialized requirements logged for this event entry."}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <div className="flex flex-col">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Financial Status</span>
+                <span className="text-xs font-black text-black uppercase">
+                  {selectedBooking?.status === 'confirmed' ? 'Payment Verified' : 'Awaiting Settlement'}
+                </span>
+              </div>
+              <Button 
+                onClick={() => setSelectedBooking(null)}
+                className="rounded-none bg-black text-white hover:bg-slate-800 text-[10px] font-bold uppercase tracking-widest h-10 px-8"
+              >
+                Close Record
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!newBookingDate} onOpenChange={(open) => !open && setNewBookingDate(null)}>
+        <DialogContent className="max-w-2xl rounded-none border-black">
+          <DialogHeader className="border-b border-slate-100 pb-4">
+            <DialogTitle className="text-sm font-black uppercase tracking-tighter">Initialize New Event Request</DialogTitle>
+            <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+              Date Lock: {newBookingDate}
+            </DialogDescription>
+          </DialogHeader>
+          <BookingForm 
+            initialDate={newBookingDate || undefined} 
+            initialTargetId={preSelectedVenueId || undefined}
+            initialTargetName={preSelectedVenueName || undefined}
+            onSuccess={() => {
+              setNewBookingDate(null);
+              fetchBookings();
+            }} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+export default function CalendarPageWrapper() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center font-bold text-black uppercase tracking-widest">Loading Ledger...</div>}>
+      <CalendarPage />
+    </Suspense>
   );
 }

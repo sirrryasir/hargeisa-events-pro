@@ -10,6 +10,7 @@ export interface IVendor extends Document {
   contactPhone: string;
   contactPerson: string;
   description: string;
+  owner: mongoose.Types.ObjectId;
 }
 
 const vendorSchema = new Schema(
@@ -27,6 +28,11 @@ const vendorSchema = new Schema(
     contactPhone: { type: String, required: true },
     contactPerson: { type: String },
     description: { type: String },
+    owner: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true }
 );

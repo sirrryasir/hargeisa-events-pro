@@ -18,6 +18,8 @@ export const metadata: Metadata = {
 };
 
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { NotificationProvider } from "@/components/notification-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function RootLayout({
   children,
@@ -26,8 +28,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans`}>
-        <AuthProvider>{children}</AuthProvider>
+      <body className={`${inter.variable} font-sans`} suppressHydrationWarning>
+        <AuthProvider>
+          <NotificationProvider>
+            {children}
+            <Toaster position="top-right" />
+          </NotificationProvider>
+        </AuthProvider>
       </body>
     </html>
   );

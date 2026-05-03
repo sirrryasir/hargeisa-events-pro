@@ -19,16 +19,28 @@ const PORT = process.env.PORT || 5000;
 connectDB();
 
 // Middlewares
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP in dev to prevent 'Network Error' on cross-origin requests
+}));
 app.use(compression());
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+  credentials: true
+}));
 app.use(express.json());
 app.use(morgan("dev"));
+
+// Serve static uploads
+import path from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 100,
+  limit: 1000,
   standardHeaders: "draft-7",
   legacyHeaders: false,
 });
@@ -45,6 +57,12 @@ app.get("/", (req, res) => {
 // Error Handling
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+import { createServer } from "http";
+import { initSocket } from "./src/lib/socket.js";
+
+const httpServer = createServer(app);
+initSocket(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });

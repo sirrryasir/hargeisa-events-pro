@@ -16,7 +16,12 @@ import {
   User
 } from "lucide-react";
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  setMobileOpen?: (open: boolean) => void;
+}
+
+export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const role = session?.user?.role || "customer";
@@ -43,7 +48,19 @@ export function Sidebar() {
   const navigation = role === "customer" ? customerNav : adminNav;
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 hidden lg:flex flex-col shrink-0 min-h-screen">
+    <>
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setMobileOpen?.(false)}
+        />
+      )}
+
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 min-h-screen transition-transform duration-300 lg:static lg:translate-x-0
+        ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+      `}>
       <div className="h-24 flex flex-col justify-center px-6 border-b border-slate-200">
         <span className="text-xl font-black text-black tracking-tighter uppercase">
           HARGEISA<span className="text-slate-400">PRO</span>
@@ -105,5 +122,6 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

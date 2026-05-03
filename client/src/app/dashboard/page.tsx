@@ -32,6 +32,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ShieldCheck, Info, Lock } from "lucide-react";
+import { VenueForm } from "@/components/venue-form";
+import { VendorForm } from "@/components/vendor-form";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -46,7 +48,7 @@ export default function DashboardPage() {
         const [bRes, vRes, pRes] = await Promise.all([
           api.get("/bookings"),
           api.get("/venues"),
-          api.get("/payments")
+          api.get("/payments").catch(() => ({ data: { data: [] } }))
         ]);
         const bookings = bRes.data.data;
         const venues = vRes.data.data;
@@ -112,6 +114,54 @@ export default function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      {role === "admin" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <Card className="rounded-none border-slate-200 shadow-none bg-slate-50">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold text-black uppercase tracking-tight">Create Venue</CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase text-slate-400">Onboard a new event location</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Dialog>
+                <DialogTrigger render={
+                  <Button className="w-full bg-black text-white rounded-none hover:bg-slate-800 uppercase text-xs font-bold tracking-widest h-12">
+                    Open Venue Form
+                  </Button>
+                } />
+                <DialogContent className="max-w-2xl rounded-none border-2 border-black">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl font-bold text-black uppercase tracking-tight">New Venue Asset</DialogTitle>
+                  </DialogHeader>
+                  <VenueForm onSuccess={() => {}} />
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
+          
+          <Card className="rounded-none border-slate-200 shadow-none bg-slate-50">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold text-black uppercase tracking-tight">Create Vendor</CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase text-slate-400">Onboard a new professional service</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Dialog>
+                <DialogTrigger render={
+                  <Button className="w-full bg-black text-white rounded-none hover:bg-slate-800 uppercase text-xs font-bold tracking-widest h-12">
+                    Open Vendor Form
+                  </Button>
+                } />
+                <DialogContent className="rounded-none border-2 border-black max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl font-bold text-black uppercase tracking-tight">Onboard Vendor</DialogTitle>
+                  </DialogHeader>
+                  <VendorForm onSuccess={() => {}} />
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <Card className="lg:col-span-2 rounded-none border-slate-200 shadow-none">

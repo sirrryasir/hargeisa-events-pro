@@ -29,27 +29,36 @@ const venueSchema = z.object({
   address: z.string().min(5, "Address is required"),
   capacity: z.number().min(10, "Minimum capacity 10"),
   pricePerDay: z.number().min(1, "Price is required"),
-  imageUrl: z.string().optional(),
   amenities: z.string().optional(),
   contactPhone: z.string().min(7, "Contact phone is required"),
 });
 
 interface VenueFormProps {
   onSuccess?: () => void;
+  initialData?: any;
 }
 
-export function VenueForm({ onSuccess }: VenueFormProps) {
+export function VenueForm({ onSuccess, initialData }: VenueFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [currentImage, setCurrentImage] = useState(initialData?.imageUrl || "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=2074&auto=format&fit=crop");
 
   const form = useForm<z.infer<typeof venueSchema>>({
     resolver: zodResolver(venueSchema),
-    defaultValues: {
+    defaultValues: initialData ? {
+      name: initialData.name,
+      type: initialData.type,
+      address: initialData.address,
+      capacity: initialData.capacity,
+      pricePerDay: initialData.pricePerDay,
+      amenities: initialData.amenities?.join(", ") || "",
+      contactPhone: initialData.contactPhone,
+    } : {
       name: "",
       type: "hotel",
       address: "",
       capacity: 100,
       pricePerDay: 500,
-      imageUrl: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=2074&auto=format&fit=crop",
       amenities: "",
       contactPhone: "",
     },
@@ -58,8 +67,19 @@ export function VenueForm({ onSuccess }: VenueFormProps) {
   async function onSubmit(values: z.infer<typeof venueSchema>) {
     setIsSubmitting(true);
     try {
+      let finalImageUrl = currentImage;
+      if (file) {
+        const formData = new FormData();
+        formData.append("image", file);
+        const uploadRes = await api.post("/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        finalImageUrl = uploadRes.data.data.imageUrl;
+      }
+
       const payload = {
         ...values,
+        imageUrl: finalImageUrl,
         amenities: values.amenities
           ? values.amenities
               .split(",")
@@ -67,11 +87,17 @@ export function VenueForm({ onSuccess }: VenueFormProps) {
               .filter(Boolean)
           : [],
       };
-      await api.post("/venues", payload);
-      form.reset();
+      
+      if (initialData) {
+        await api.put(`/venues/${initialData._id}`, payload);
+      } else {
+        await api.post("/venues", payload);
+      }
+      
+      if (!initialData) form.reset();
       if (onSuccess) onSuccess();
     } catch (error) {
-      console.error("Error creating venue:", error);
+      console.error("Error saving venue:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -162,19 +188,18 @@ export function VenueForm({ onSuccess }: VenueFormProps) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="imageUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Venue Photo URL</FormLabel>
-              <FormControl>
-                <Input placeholder="https://..." className="rounded-none border-slate-200 focus:border-black text-xs font-bold" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+        <div className="space-y-2">
+          <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Venue Photo</FormLabel>
+          <Input 
+            type="file" 
+            accept="image/*"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="rounded-none border-slate-200 focus:border-black text-xs font-bold" 
+          />
+          {currentImage && !file && (
+            <p className="text-[10px] text-slate-400 font-bold">Current image loaded. Uploading a new one will replace it.</p>
           )}
-        />
+        </div>
         <FormField
           control={form.control}
           name="amenities"
@@ -211,7 +236,7 @@ export function VenueForm({ onSuccess }: VenueFormProps) {
         />
 
         <Button type="submit" className="w-full h-12 bg-black text-white rounded-none hover:bg-slate-800 uppercase text-xs font-bold tracking-widest mt-4" disabled={isSubmitting}>
-          {isSubmitting ? "Adding to Inventory..." : "Register Venue Asset"}
+          {isSubmitting ? (initialData ? "Updating..." : "Adding to Inventory...") : (initialData ? "Update Venue Asset" : "Register Venue Asset")}
         </Button>
       </form>
     </Form>

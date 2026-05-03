@@ -2,7 +2,8 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBooking extends Document {
   user?: mongoose.Types.ObjectId;
-  venue: mongoose.Types.ObjectId;
+  venue?: mongoose.Types.ObjectId;
+  vendor?: mongoose.Types.ObjectId;
   clientName: string;
   clientPhone: string;
   eventType: string;
@@ -17,7 +18,8 @@ export interface IBooking extends Document {
 const bookingSchema: Schema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User" },
-    venue: { type: Schema.Types.ObjectId, ref: "Venue", required: true },
+    venue: { type: Schema.Types.ObjectId, ref: "Venue" },
+    vendor: { type: Schema.Types.ObjectId, ref: "Vendor" },
     clientName: { type: String, required: true },
     clientPhone: { type: String, required: true },
     eventType: { type: String, required: true },
@@ -34,5 +36,12 @@ const bookingSchema: Schema = new Schema(
   },
   { timestamps: true }
 );
+
+// Require either a venue or a vendor
+bookingSchema.pre('validate', function() {
+  if (!this.venue && !this.vendor) {
+    throw new Error('A booking must have either a venue or a vendor specified.');
+  }
+});
 
 export const Booking = mongoose.model<IBooking>("Booking", bookingSchema);

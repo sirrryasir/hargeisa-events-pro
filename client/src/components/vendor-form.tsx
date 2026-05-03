@@ -34,15 +34,23 @@ const vendorSchema = z.object({
 
 interface VendorFormProps {
   onSuccess?: () => void;
+  initialData?: any;
 }
 
-export function VendorForm({ onSuccess }: VendorFormProps) {
+export function VendorForm({ onSuccess, initialData }: VendorFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
   const form = useForm<z.infer<typeof vendorSchema>>({
     resolver: zodResolver(vendorSchema),
-    defaultValues: {
+    defaultValues: initialData ? {
+      name: initialData.name,
+      category: initialData.type || initialData.category,
+      contactPerson: initialData.contactPerson || "",
+      phone: initialData.contactPhone || initialData.phone,
+      email: initialData.contactEmail || initialData.email,
+      description: initialData.description || "",
+    } : {
       name: "",
       category: "",
       contactPerson: "",
@@ -56,17 +64,26 @@ export function VendorForm({ onSuccess }: VendorFormProps) {
     setIsSubmitting(true);
     setSubmitError("");
     try {
-      await api.post("/vendors", {
+      const payload = {
         name: values.name,
         type: values.category,
         contactEmail: values.email,
         contactPhone: values.phone,
-      });
-      form.reset();
+        contactPerson: values.contactPerson,
+        description: values.description,
+      };
+
+      if (initialData) {
+        await api.put(`/vendors/${initialData._id}`, payload);
+      } else {
+        await api.post("/vendors", payload);
+      }
+      
+      if (!initialData) form.reset();
       if (onSuccess) onSuccess();
     } catch (error) {
-      console.error("Error creating vendor:", error);
-      setSubmitError("Failed to submit vendor application. Please try again.");
+      console.error("Error saving vendor:", error);
+      setSubmitError("Failed to save vendor details. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -178,7 +195,7 @@ export function VendorForm({ onSuccess }: VendorFormProps) {
         />
 
         <Button type="submit" className="w-full rounded-none bg-black text-white h-12 text-[10px] font-black uppercase tracking-widest hover:bg-slate-800" disabled={isSubmitting}>
-          {isSubmitting ? "Processing..." : "Submit Application"}
+          {isSubmitting ? (initialData ? "Updating..." : "Processing...") : (initialData ? "Update Vendor Profile" : "Submit Application")}
         </Button>
       </form>
     </Form>

@@ -72,3 +72,55 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(401, "Invalid email or password");
   }
 });
+
+/**
+ * @desc    Get user profile
+ * @route   GET /api/auth/profile
+ * @access  Private
+ */
+export const getUserProfile = asyncHandler(async (req: any, res: Response) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    res.status(200).json(
+      new ApiResponse(200, {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      }, "User profile fetched")
+    );
+  } else {
+    throw new ApiError(404, "User not found");
+  }
+});
+
+/**
+ * @desc    Update user profile
+ * @route   PATCH /api/auth/profile
+ * @access  Private
+ */
+export const updateUserProfile = asyncHandler(async (req: any, res: Response) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+    if (req.body.password) {
+      user.password = req.body.password;
+    }
+
+    const updatedUser = await user.save();
+
+    res.status(200).json(
+      new ApiResponse(200, {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+      }, "Profile updated successfully")
+    );
+  } else {
+    throw new ApiError(404, "User not found");
+  }
+});

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
 import api from "@/lib/api";
 import { exportToCSV } from "@/lib/export";
+import { generateInvoicePDF } from "@/lib/pdf";
 
 interface Payment {
   _id: string;
@@ -31,7 +32,7 @@ export default function PaymentBilling() {
 
     const fetchPayments = async () => {
       try {
-        const res = await api.get("/payments");
+        const res = await api.get("/payments").catch(() => ({ data: { data: [] } }));
         setPayments(res.data.data);
       } catch (error) {
         console.error("Error fetching payments:", error);
@@ -134,7 +135,7 @@ export default function PaymentBilling() {
                   </TableCell>
                   <TableCell className="pr-6 text-right">
                     <Button 
-                      onClick={() => exportToCSV([trx] as unknown as Record<string, unknown>[], `transaction-${trx.transactionId}`)}
+                      onClick={() => generateInvoicePDF(trx)}
                       variant="ghost" 
                       size="icon" 
                       className="h-8 w-8 hover:bg-black hover:text-white rounded-none"
