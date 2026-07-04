@@ -71,9 +71,7 @@ export function VenueForm({ onSuccess, initialData }: VenueFormProps) {
       if (file) {
         const formData = new FormData();
         formData.append("image", file);
-        const uploadRes = await api.post("/upload", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        const uploadRes = await api.post("/upload", formData);
         finalImageUrl = uploadRes.data.data.imageUrl;
       }
 
