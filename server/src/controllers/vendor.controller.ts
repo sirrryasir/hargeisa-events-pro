@@ -95,3 +95,24 @@ export const updateVendor = asyncHandler(async (req: any, res: Response) => {
 
   res.status(200).json(new ApiResponse(200, vendor, "Vendor updated successfully"));
 });
+
+/**
+ * @desc    Delete a vendor
+ * @route   DELETE /api/vendors/:id
+ */
+export const deleteVendor = asyncHandler(async (req: any, res: Response) => {
+  const vendor = await Vendor.findById(req.params.id);
+
+  if (!vendor) {
+    throw new ApiError(404, "Vendor not found");
+  }
+
+  // Authorization check: Admin only
+  if (req.user.role !== "admin") {
+    throw new ApiError(403, "Not authorized to delete this vendor");
+  }
+
+  await vendor.deleteOne();
+
+  res.status(200).json(new ApiResponse(200, {}, "Vendor deleted successfully"));
+});

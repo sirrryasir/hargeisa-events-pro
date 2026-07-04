@@ -64,3 +64,24 @@ export const updateVenue = asyncHandler(async (req: any, res: Response) => {
 
   res.status(200).json(new ApiResponse(200, venue, "Venue updated successfully"));
 });
+
+/**
+ * @desc    Delete a venue
+ * @route   DELETE /api/venues/:id
+ */
+export const deleteVenue = asyncHandler(async (req: any, res: Response) => {
+  const venue = await Venue.findById(req.params.id);
+
+  if (!venue) {
+    throw new ApiError(404, "Venue not found");
+  }
+
+  // Authorization check: Admin only
+  if (req.user.role !== "admin") {
+    throw new ApiError(403, "Not authorized to delete this venue");
+  }
+
+  await venue.deleteOne();
+
+  res.status(200).json(new ApiResponse(200, {}, "Venue deleted successfully"));
+});

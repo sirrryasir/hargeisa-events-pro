@@ -23,6 +23,8 @@ export default function VenuesPage() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [isAddOpen, setIsAddOpen] = useState(false);
+
   const fetchVenues = async () => {
     try {
       const res = await api.get("/venues");
@@ -52,7 +54,7 @@ export default function VenuesPage() {
           </p>
         </div>
         {session?.user?.role === "admin" && (
-          <Dialog>
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger render={
               <Button className="bg-black text-white rounded-none hover:bg-slate-800 uppercase text-xs font-bold tracking-widest gap-2 h-12 px-8 transition-all">
                 <Plus className="h-4 w-4" />
@@ -64,7 +66,10 @@ export default function VenuesPage() {
                 <DialogTitle className="text-2xl font-black text-black uppercase tracking-tight">Asset Registration</DialogTitle>
                 <DialogDescription className="text-[10px] font-bold uppercase text-slate-400">Add a new premium venue to the Hargeisa Pro inventory.</DialogDescription>
               </DialogHeader>
-              <VenueForm onSuccess={fetchVenues} />
+              <VenueForm onSuccess={() => {
+                fetchVenues();
+                setIsAddOpen(false);
+              }} />
             </DialogContent>
           </Dialog>
         )}
@@ -72,7 +77,7 @@ export default function VenuesPage() {
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
         {venues.map((venue) => (
-          <VenueCard key={venue._id} venue={venue} />
+          <VenueCard key={venue._id} venue={venue} onRefresh={fetchVenues} />
         ))}
       </div>
     </div>
